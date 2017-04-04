@@ -5,6 +5,7 @@ import java.util.ResourceBundle;
 
 import it.polito.tdp.lab04.model.Model;
 import it.polito.tdp.lab04.model.Studente;
+import it.polito.tdp.lab04.model.Corso;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -55,17 +56,43 @@ public class SegreteriaStudentiController {
 
     @FXML
     void doCercaCorsi(ActionEvent event) {
-
+    	String matricola = txtMatricola.getText();
+    	if(matricola.length()<6){
+    		txtResult.appendText("Matricola non valida\n");
+    		return;
+    	}
+    	Studente s= model.trovaStudente(matricola);
+    	
+    	if(s==null){
+    		txtResult.appendText("Matricola "+matricola+" non trovata \n");
+    	}
+    	else{
+    		for(Corso c : model.getCorsiDiStudente(matricola)){
+    			txtResult.appendText(c.getCodice()+"\t"+c.getCrediti()+"\t"+c.getNome()+"\t"+c.getPd()+"\n");
+    		}
+    	}
     }
 
+    
+    /**
+     * Implementare la ricerca degli studenti iscritti ad un corso
+     * @param event
+     */
     @FXML
     void doCercaIscrittiCorso(ActionEvent event) {
-
+    	String nomeCorso=comboCorso.getValue();
+    	if(nomeCorso.length()>2){
+    	for(Studente s: model.getIscrittiCorso(nomeCorso)){
+    		txtResult.appendText(+s.getMatricola()+"\t"+s.getNome()+"\t"+s.getCognome()+"\t"+s.getCDS()+"\n");
+    	}
+    	}else
+    		txtResult.setText("Corso selezionato non valido"+"\n");
+    	
     }
 
     @FXML
     void doCercaNome(MouseEvent event) {
-    	if(!txtMatricola.getText().matches("[0-9]*")){
+    	if(!txtMatricola.getText().matches("[0-9]*") || txtMatricola.getText().length()<6){
     		txtResult.setText("Matricola non valida!");
     		return;
     	}
@@ -73,23 +100,66 @@ public class SegreteriaStudentiController {
     		txtResult.setText("Inserisci matricola!");
     		return;
     	}
-    	Studente stemp= model.cercaStudente( Integer.parseInt(txtMatricola.getText()) );
+    	Studente stemp= model.trovaStudente(txtMatricola.getText() );
     	if(stemp==null){
     		txtResult.setText("Matricola non trovata!");
     		return;
+    	} else{
+    		if(comboCorso.getValue().compareTo("")==0){
+    			txtNome.setText(stemp.getNome());
+    	    	txtCognome.setText(stemp.getCognome());
+    		} else{
+    			if(model.controlStudenteiscritto(txtMatricola.getText(), comboCorso.getValue())){
+    				txtResult.setText("Studente già iscritto al corso selezionato"+"\n");
+    				txtNome.setText(stemp.getNome());
+    	    		txtCognome.setText(stemp.getCognome());
+    	    		}
+    			else{
+    				txtResult.setText("Studente non iscritto al corso selezionato"+"\n");
+    				txtNome.setText(stemp.getNome());
+    	    		txtCognome.setText(stemp.getCognome());
+    			}
+    		}
     	}
-    	txtNome.setText(stemp.getNome());
-    	txtCognome.setText(stemp.getCognome());
     }
 
+    
+    /**Inserisco lo studente nella base dati
+	  *Se e solo se lo studente è già presente nella tabella 'studente'
+	  *Se cosi è, riempio la tabella 'iscrizione'
+	 **/
     @FXML
     void doIscrivi(ActionEvent event) {
-
+    	if(comboCorso.getValue().compareTo("")!=0){
+    		if(!txtMatricola.getText().matches("[0-9]*") || txtMatricola.getText().length()<6){
+        		txtResult.setText("Matricola non valida!");
+        		return;
+        	}
+        	if(txtMatricola.getText().isEmpty()){
+        		txtResult.setText("Inserisci matricola!");
+        		return;
+        	}
+        	if(model.controlStudenteiscritto(txtMatricola.getText(), comboCorso.getValue()))
+				txtResult.setText("Studente già iscritto al corso selezionato"+"\n");
+        	else{
+        		if(model.controlStudentePresente( Integer.parseInt(txtMatricola.getText()) )){
+        			model.iscriviStudente(txtMatricola.getText(), comboCorso.getValue());
+        			txtResult.setText("Studente iscritto al corso!");
+        		}else{
+        			txtResult.setText("Studente non presente!");
+        		}
+        	}
+    	}else{
+    		txtResult.setText("Nessun corso inserito!");
+    	}
     }
 
     @FXML
     void doReset(ActionEvent event) {
-
+    	txtResult.clear();
+    	txtMatricola.clear();
+    	txtNome.clear();
+    	txtCognome.clear();
     }
 
     @FXML
@@ -111,7 +181,6 @@ public class SegreteriaStudentiController {
 	public void setModel(Model model) {
 		this.model=model;
 		comboCorso.getItems().addAll(model.getListaCorsi());
-		if(comboCorso.getItems().size()>0)
-			comboCorso.setValue(comboCorso.getItems().get(0));
+		
 	}
 }
